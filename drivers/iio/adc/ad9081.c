@@ -1968,12 +1968,20 @@ static int ad9081_multichip_sync(struct ad9081_phy *phy, int step)
 			return ret;
 		break;
 	case 8:
+		if (!phy->jdev)
+			return -ENOTSUPP;
 		jesd204_fsm_stop(phy->jdev, JESD204_LINKS_ALL);
+		jesd204_fsm_clear_errors(phy->jdev, JESD204_LINKS_ALL);
 		break;
 	case 9:
+		if (!phy->jdev)
+			return -ENOTSUPP;
 		return jesd204_fsm_start(phy->jdev, JESD204_LINKS_ALL);
 	case 10:
+		if (!phy->jdev)
+			return -ENOTSUPP;
 		jesd204_fsm_stop(phy->jdev, JESD204_LINKS_ALL);
+		jesd204_fsm_clear_errors(phy->jdev, JESD204_LINKS_ALL);
 		return jesd204_fsm_start(phy->jdev, JESD204_LINKS_ALL);
 	default:
 		return -EINVAL;
