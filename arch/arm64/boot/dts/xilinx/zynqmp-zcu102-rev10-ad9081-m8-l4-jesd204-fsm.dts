@@ -63,4 +63,6 @@
 	jesd204-device;
 	#jesd204-cells = <2>;
 	jesd204-sysref-provider;
+
+	adi,jesd204-max-sysref-frequency-hz = <2000000>; /* 2 MHz */
 };
