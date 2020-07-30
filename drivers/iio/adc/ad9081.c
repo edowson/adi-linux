@@ -3023,21 +3023,32 @@ static int ad9081_jesd204_clks_enable(struct jesd204_dev *jdev,
 	struct ad9081_phy *phy = priv->phy;
 	int ret;
 
-	if (reason != JESD204_STATE_OP_REASON_INIT)
-		return JESD204_STATE_CHANGE_DONE;
-
 	dev_dbg(dev, "%s:%d link_num %u reason %s\n", __func__, __LINE__, lnk->link_id, jesd204_state_op_reason_str(reason));
 
-	if (lnk->is_transmit && (lnk->jesd_version == JESD204_VERSION_C)) {
+	if (lnk->is_transmit && (reason == JESD204_STATE_OP_REASON_INIT) &&
+		(lnk->jesd_version == JESD204_VERSION_C)) {
 		unsigned long tx_lane_rate_kbps;
 
 		jesd204_link_get_rate_khz(lnk, &tx_lane_rate_kbps);
 
-		if ((tx_lane_rate_kbps > 16230000UL)) {
+		if ((tx_lane_rate_kbps > 16230000UL) &&
+			phy->jesd_tx_link.lane_rate != tx_lane_rate_kbps) {
 			ret = adi_ad9081_jesd_rx_calibrate_204c(&phy->ad9081, 1, 0, 0);
 			if (ret < 0)
 				return ret;
 		}
+
+		phy->jesd_tx_link.lane_rate = tx_lane_rate_kbps;
+	}
+
+	if (!lnk->is_transmit) {
+		/* txfe RX (JTX) link */
+		ret = adi_ad9081_jesd_tx_link_enable_set(&phy->ad9081,
+			(phy->jesd_rx_link[0].jesd_param.jesd_duallink > 0) ?
+			AD9081_LINK_ALL : AD9081_LINK_0,
+			reason == JESD204_STATE_OP_REASON_INIT);
+		if (ret != 0)
+			return ret;
 	}
 
 	return JESD204_STATE_CHANGE_DONE;
@@ -3055,17 +3066,9 @@ static int ad9081_jesd204_link_enable(struct jesd204_dev *jdev,
 	dev_dbg(dev, "%s:%d link_num %u reason %s\n", __func__, __LINE__, lnk->link_id, jesd204_state_op_reason_str(reason));
 
 	if (lnk->is_transmit) {
-		/* txfe RX (JRX) link */
+		/* txfe TX (JRX) link */
 		ret = adi_ad9081_jesd_rx_link_enable_set(&phy->ad9081,
 			(phy->jesd_tx_link.jesd_param.jesd_duallink > 0) ?
-			AD9081_LINK_ALL : AD9081_LINK_0,
-			reason == JESD204_STATE_OP_REASON_INIT);
-		if (ret != 0)
-			return ret;
-	} else {
-		/* txfe RX (JTX) link */
-		ret = adi_ad9081_jesd_tx_link_enable_set(&phy->ad9081,
-			(phy->jesd_rx_link[0].jesd_param.jesd_duallink > 0) ?
 			AD9081_LINK_ALL : AD9081_LINK_0,
 			reason == JESD204_STATE_OP_REASON_INIT);
 		if (ret != 0)
