@@ -3131,6 +3131,14 @@ static int ad9081_jesd204_setup_stage1(struct jesd204_dev *jdev,
 
 	dev_dbg(dev, "%s:%d reason %s\n", __func__, __LINE__, jesd204_state_op_reason_str(reason));
 
+	/* For some reason JTX link must be enabled during OneShot Sync */
+	adi_ad9081_jesd_tx_link_enable_set(&phy->ad9081, AD9081_LINK_ALL, 0);
+	adi_ad9081_jesd_tx_link_reset(&phy->ad9081, 1);
+	adi_ad9081_jesd_tx_link_enable_set(&phy->ad9081,
+			(phy->jesd_rx_link[0].jesd_param.jesd_duallink > 0) ?
+			AD9081_LINK_ALL : AD9081_LINK_0, 1);
+	adi_ad9081_jesd_tx_link_reset(&phy->ad9081, 0);
+
 	/* JESD OneShot Sync */
 	ret = adi_ad9081_hal_bf_set(&phy->ad9081, REG_SYNC_DEBUG0_ADDR,
 		BF_AVRG_FLOW_EN_INFO, 1);
