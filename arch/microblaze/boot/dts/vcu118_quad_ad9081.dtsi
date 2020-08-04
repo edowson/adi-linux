@@ -298,3 +298,10 @@
 		};
 	};
 };
+
+&fmc_i2c {
+	eeprom@50 {
+		compatible = "at24,24c02";
+		reg = <0x50>;
+	};
+};
