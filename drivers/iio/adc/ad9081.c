@@ -148,6 +148,7 @@ struct ad9081_phy {
 	u64 dac_frequency_hz;
 	s64 tx_main_shift[MAX_NUM_MAIN_DATAPATHS];
 	s64 tx_chan_shift[MAX_NUM_CHANNELIZER];
+	u32 tx_dac_fsc[MAX_NUM_MAIN_DATAPATHS];
 	u32 tx_main_interp;
 	u32 tx_chan_interp;
 	u8 tx_dac_chan_xbar[MAX_NUM_MAIN_DATAPATHS];
@@ -1808,6 +1809,15 @@ static int ad9081_setup(struct spi_device *spi, bool jesd_fsm)
 	if (ret != 0)
 		return ret;
 
+
+	for (i = 0; i < ARRAY_SIZE(phy->tx_dac_fsc); i++) {
+		if (phy->tx_dac_fsc[i]) {
+			ret = adi_ad9081_dac_fsc_set(&phy->ad9081, BIT(i), phy->tx_dac_fsc[i]);
+			if (ret != 0)
+				return ret;
+		}
+	}
+
 	if (!jesd_fsm) {
 		ret = ad9081_nco_sync_master_slave(phy,
 			!IS_ERR_OR_NULL(phy->jesd_rx_clk));
@@ -2403,6 +2413,25 @@ static void ad9081_work_func(struct work_struct *work)
 	schedule_delayed_work(&phy->dwork, msecs_to_jiffies(1000));
 }
 
+static int ad9081_fsc_set(void *arg, const u64 val)
+{
+	struct iio_dev *indio_dev = arg;
+	struct axiadc_converter *conv = iio_device_get_drvdata(indio_dev);
+	struct ad9081_phy *phy = conv->phy;
+	int ret;
+
+	if (!val)
+		return -EINVAL;
+
+	mutex_lock(&indio_dev->mlock);
+	ret = adi_ad9081_dac_fsc_set(&phy->ad9081, AD9081_DAC_ALL, val);
+	mutex_unlock(&indio_dev->mlock);
+
+	return ret;
+}
+
+DEFINE_DEBUGFS_ATTRIBUTE(ad9081_fsc_fops, NULL, ad9081_fsc_set, "%llu");
+
 static int ad9081_post_iio_register(struct iio_dev *indio_dev)
 {
 	struct axiadc_converter *conv = iio_device_get_drvdata(indio_dev);
@@ -2416,6 +2445,10 @@ static int ad9081_post_iio_register(struct iio_dev *indio_dev)
 		if (PTR_ERR_OR_ZERO(stats))
 			dev_err(&conv->spi->dev,
 				"Failed to create debugfs entry");
+
+		debugfs_create_file_unsafe("dac-full-scale-current-ua", 0600,
+			iio_get_debugfs_dentry(indio_dev), indio_dev,
+			&ad9081_fsc_fops);
 	}
 
 	return 0;
@@ -2652,6 +2685,9 @@ static int ad9081_parse_dt_tx(struct ad9081_phy *phy, struct device_node *np)
 			of_property_read_u64(of_chan,
 					     "adi,nco-frequency-shift-hz",
 					     &phy->tx_main_shift[reg]);
+			of_property_read_u32(of_chan,
+					     "adi,full-scale-current-ua",
+					     &phy->tx_dac_fsc[reg]);
 
 			for (i = 0; i < ARRAY_SIZE(phy->tx_dac_chan_xbar);
 				i++) {
