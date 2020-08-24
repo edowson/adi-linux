@@ -22,6 +22,14 @@ config COMMON_CLK
 menu "Common Clock Framework"
 	depends on COMMON_CLK
 
+config COMMON_CLK_AD9545
+	tristate "Analog Devices AD9545 Synchronizer and Jitter Cleaner"
+	depends on SPI
+	---help---
+	  Say yes here to build support for Analog Devices AD9545
+	  Quad Input, 10-Output, Dual DPLL/IEEE 1588,
+	  1 pps Synchronizer and Jitter Cleaner
+
 config COMMON_CLK_WM831X
 	tristate "Clock driver for WM831x/2x PMICs"
 	depends on MFD_WM831X

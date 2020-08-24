@@ -1,0 +1,201 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/clock/clk-ad9545.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Analog Devices AD9545 Quad Input, 10-Output, Dual DPLL/IEEE 1588
+
+maintainers:
+  - Alexandru Tachici <alexandru.tachici@analog.com>
+
+description: |
+  Analog Devices AD9545 Quad Input, 10-Output, Dual DPLL/IEEE 1588,
+  1 pps Synchronizer and Jitter Cleaner
+  https://www.analog.com/media/en/technical-documentation/data-sheets/ADM1266.pdf
+
+properties:
+  compatible:
+    enum:
+      - adi,ad9545
+
+  reg:
+    description: |
+      I2C address of the secondary device.
+
+  avcc-supply:
+    description: |
+      Phandle to the Avcc power supply.
+
+  adi,freq-doubler:
+    description: |
+      The system clock PLL provides the user with the option of doubling the reference frequency.
+    type: boolean
+
+  adi,ref-crystal:
+    description: |
+      At XOA,XOB there is a crystal connected that needs maintaining.
+      Otherwise it is assumed that there is a TCXO or OCXO connected.
+    type: boolean
+
+  adi,ref-frequency-mhz:
+    description: |
+      Reference input frequency at XOA,XOB. This is used for the system clock.
+    allOf:
+      - $ref: /schemas/types.yaml#/definitions/uint32-array
+    minItems: 2
+    maxItems: 2
+
+patternProperties:
+  "^ref-input-clk@[0-3]$":
+    description: |
+      Represents a reference clock input.
+    type: object
+
+    properties:
+      reg:
+        description: |
+          The reference input number. It can have up to 4 input clocks numbered from 0 to 3.
+          (mapped: [refa, refaa, refb, refbb] -> [0, 1, 2, 3])
+        maxItems: 1
+
+      adi,single-ended-mode:
+        description: |
+          Single-ended configuration mode.
+        allOf:
+          - $ref: /schemas/types.yaml#/definitions/uint32
+          - enum: [0, 1, 2, 3]
+        maxItems: 1
+
+      adi,differential-mode:
+        description: |
+          Differential configuration mode.
+        allOf:
+          - $ref: /schemas/types.yaml#/definitions/uint32
+          - enum: [0, 1, 2]
+        maxItems: 1
+
+      adi,r-divider-ratio:
+        description: |
+          Each reference input has a dedicated divider.
+        allOf:
+          - $ref: /schemas/types.yaml#/definitions/uint32
+          - minimum: 0
+          - maximum: 0x40000000
+        maxItems: 1
+
+      adi,ref-nominal-frequency-hz:
+        description: |
+          Nominal frequency of reference signal.
+        allOf:
+          - $ref: /schemas/types.yaml#/definitions/uint32
+        minItems: 1
+
+      adi,ref-dtol-pbb:
+        description: |
+          REFx offset limit. Constitutes a fractional portion of the corresponding nominal period.
+          The 24-bit number represents fractional units of parts per billion (ppb) up to a
+          maximum of approximately 17 million ppb (1.7%).
+        allOf:
+          - $ref: /schemas/types.yaml#/definitions/uint32
+          - minimum: 0
+          - maximum: 16777215
+          - default: 100000
+
+      adi,ref-monitor-hysteresis-pbb:
+        description: |
+          Basis points of the offset limit representing per ten thousand of REFx offset limit.
+        allOf:
+          - $ref: /schemas/types.yaml#/definitions/uint32
+          - enum: [0, 3125, 6250, 12500, 25000, 50000, 75000, 87500]
+          - default: 12500
+
+      adi,ref-validation-timer-ms:
+        description: |
+          Time required for a reference to remain in tolerance condition before being
+          available to be used.
+        allOf:
+          - $ref: /schemas/types.yaml#/definitions/uint32
+          - minimum: 1
+          - maximum: 1048574
+          - default: 10
+
+  "^output-clk@([0-5]|1[0-3])$":
+    description: |
+      Represents a clock output.
+    type: object
+
+    properties:
+      reg:
+        description: |
+          The reference input number. It can have up to 10 output clocks mapped:
+          (OUT0AP OUT0AN OUT0BP OUT0BN OUT0CP OUT0CN OUT1AP OUT1AN OUT1BP OUT1BN) ->
+          (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+        maxItems: 1
+
+      adi,current-sink:
+        description: |
+          If specified output is set as current sink.
+        type: boolean
+
+      adi,current-source-microamp:
+        description: |
+          The magnitude of the driver current.
+        allOf:
+          - $ref: /schemas/types.yaml#/definitions/uint32
+          - enum: [7500, 12500, 15000]
+        minItems: 1
+
+      adi,output-mode:
+        description: |
+          Output driver mode.
+        allOf:
+          - $ref: /schemas/types.yaml#/definitions/uint32
+          - enum: [0, 1, 2]
+        maxItems: 1
+
+required:
+  - compatible
+  - reg
+
+examples:
+  - |
+    ad9545@4A {
+      compatible = "adi,ad9545";
+      reg = <0x4A>;
+      #address-cells = <1>;
+      #size-cells = <0>;
+
+      adi,ref-compensation;
+      adi,freq-doubler;
+      adi,ref-crystal;
+      adi,ref-frequency-mhz = <0x71B00000 0xB>;
+
+      /* ref a*/
+      ref-input-clk@0 {
+        reg = <0>;
+        adi,single-ended-mode = <DRIVER_MODE_DC_COUPLED_1V2>;
+        adi,r-divider-ratio = <50>;
+       };
+
+      /* ref aa*/
+      ref-input-clk@1 {
+        reg = <1>;
+        adi,single-ended-mode = <DRIVER_MODE_AC_COUPLED>;
+        adi,r-divider-ratio = <50>;
+      };
+
+      /* ref b*/
+      ref-input-clk@2 {
+        reg = <2>;
+        adi,single-ended-mode = <DRIVER_MODE_DC_COUPLED_1V8>;
+        adi,r-divider-ratio = <125>;
+      };
+
+      /* ref bb*/
+      ref-input-clk@3 {
+        reg = <3>;
+        adi,single-ended-mode = <DRIVER_MODE_AC_COUPLED>;
+      };
+    };
+...
