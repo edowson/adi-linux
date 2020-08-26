@@ -2994,7 +2994,6 @@ static int ad9081_register_iiodev(struct axiadc_converter *conv)
 
 	indio_dev->info = &ad9081_iio_info;
 	indio_dev->modes = INDIO_DIRECT_MODE;
-	indio_dev->modes = INDIO_DIRECT_MODE;
 	indio_dev->channels = phy->chip_info.channel;
 	indio_dev->num_channels = phy->chip_info.num_channels;
 
@@ -3424,7 +3423,7 @@ static int ad9081_probe(struct spi_device *spi)
 	case CHIPID_AD9081:
 	case CHIPID_AD9082:
 		ret = ad9081_setup_chip_info_tbl(phy, true,
-			!IS_ERR_OR_NULL(phy->jesd_rx_clk));
+			!IS_ERR_OR_NULL(phy->jesd_rx_clk) || PTR_ERR(phy->jesd_rx_clk) == -EPROBE_DEFER);
 		if (ret)
 			break;
 		conv->chip_info = &phy->chip_info;
@@ -3457,7 +3456,7 @@ static int ad9081_probe(struct spi_device *spi)
 
 	conv->attrs = &ad9081_phy_attribute_group;
 
-	if (IS_ERR_OR_NULL(phy->jesd_rx_clk)) {
+	if (IS_ERR_OR_NULL(phy->jesd_rx_clk) && PTR_ERR(phy->jesd_rx_clk) != -EPROBE_DEFER) {
 		ret = ad9081_register_iiodev(conv);
 		if (ret)
 			goto out_clk_del_provider;
