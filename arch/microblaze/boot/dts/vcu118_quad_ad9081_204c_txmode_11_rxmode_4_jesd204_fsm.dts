@@ -23,7 +23,6 @@
 &trx2_ad9081 {
 	jesd204-device;
 	#jesd204-cells = <2>;
-	jesd204-top-device = <0>; /* This is the TOP device */
 	jesd204-link-ids = < FRAMER_LINK0_RX DEFRAMER_LINK0_TX>;
 
 	jesd204-inputs =
@@ -34,7 +33,6 @@
 &trx1_ad9081 {
 	jesd204-device;
 	#jesd204-cells = <2>;
-	jesd204-top-device = <0>; /* This is the TOP device */
 	jesd204-link-ids = < FRAMER_LINK0_RX DEFRAMER_LINK0_TX>;
 
 	jesd204-inputs =
@@ -45,7 +43,6 @@
 &trx0_ad9081 {
 	jesd204-device;
 	#jesd204-cells = <2>;
-	jesd204-top-device = <0>; /* This is the TOP device */
 	jesd204-link-ids = < FRAMER_LINK0_RX DEFRAMER_LINK0_TX>;
 
 	jesd204-inputs =
