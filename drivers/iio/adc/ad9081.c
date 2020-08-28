@@ -1613,28 +1613,6 @@ static int ad9081_setup(struct spi_device *spi, bool jesd_fsm)
 	adi_ad9081_jesd_rx_lmfc_delay_set(&phy->ad9081, AD9081_LINK_0,
 		phy->jesd_tx_link.jrx_tpl_phase_adjust);
 
-	ret = adi_ad9081_jesd_rx_lanes_xbar_set(&phy->ad9081, AD9081_LINK_0,
-			phy->jesd_tx_link.logiclane_mapping);
-	if (ret != 0)
-		return ret;
-
-	if (phy->jesd_tx_link.jesd_param.jesd_duallink > 0) {
-		ret = adi_ad9081_jesd_rx_lanes_xbar_set(
-				&phy->ad9081, AD9081_LINK_1,
-				phy->jesd_tx_link.logiclane_mapping);
-		if (ret != 0)
-			return ret;
-	}
-
-	ret = adi_ad9081_jesd_tx_lanes_xbar_set(&phy->ad9081, AD9081_LINK_0,
-			phy->jesd_rx_link[0].logiclane_mapping);
-	if (ret != 0)
-		return ret;
-	ret = adi_ad9081_jesd_tx_lids_cfg_set(&phy->ad9081, AD9081_LINK_0,
-			phy->jesd_rx_link[0].logiclane_mapping);
-	if (ret != 0)
-		return ret;
-
 	/* setup txfe jtx converter mapping */
 	for (i = 0; i < ARRAY_SIZE(phy->jesd_rx_link[0].link_converter_select);
 	     i++) {
@@ -3233,7 +3211,7 @@ static int ad9081_jesd204_setup_stage2(struct jesd204_dev *jdev,
 	dev_dbg(dev, "%s:%d reason %s\n", __func__, __LINE__, jesd204_state_op_reason_str(reason));
 
 	/* Master Slave NCO Sync */
-	if (!jesd204_dev_is_top(phy->jdev)) {
+	if (!jesd204_dev_is_top(jdev)) {
 		ret = ad9081_nco_sync_master_slave(phy, false);
 		if (ret != 0)
 			return ret;
@@ -3350,6 +3328,29 @@ static int ad9081_probe(struct spi_device *spi)
 	phy->ad9081.hal_info.user_data = conv;
 	phy->ad9081.hal_info.log_write = ad9081_log_write;
 
+        phy->ad9081.serdes_info = (adi_ad9081_serdes_settings_t) {
+            .ser_settings = { /* txfe jtx */
+                .lane_settings = {
+                    {.swing_setting = AD9081_SER_SWING_850, .pre_emp_setting = AD9081_SER_PRE_EMP_0DB, .post_emp_setting = AD9081_SER_POST_EMP_0DB},
+                    {.swing_setting = AD9081_SER_SWING_850, .pre_emp_setting = AD9081_SER_PRE_EMP_0DB, .post_emp_setting = AD9081_SER_POST_EMP_0DB},
+                    {.swing_setting = AD9081_SER_SWING_850, .pre_emp_setting = AD9081_SER_PRE_EMP_0DB, .post_emp_setting = AD9081_SER_POST_EMP_0DB},
+                    {.swing_setting = AD9081_SER_SWING_850, .pre_emp_setting = AD9081_SER_PRE_EMP_0DB, .post_emp_setting = AD9081_SER_POST_EMP_0DB},
+                    {.swing_setting = AD9081_SER_SWING_850, .pre_emp_setting = AD9081_SER_PRE_EMP_0DB, .post_emp_setting = AD9081_SER_POST_EMP_0DB},
+                    {.swing_setting = AD9081_SER_SWING_850, .pre_emp_setting = AD9081_SER_PRE_EMP_0DB, .post_emp_setting = AD9081_SER_POST_EMP_0DB},
+                    {.swing_setting = AD9081_SER_SWING_850, .pre_emp_setting = AD9081_SER_PRE_EMP_0DB, .post_emp_setting = AD9081_SER_POST_EMP_0DB},
+                    {.swing_setting = AD9081_SER_SWING_850, .pre_emp_setting = AD9081_SER_PRE_EMP_0DB, .post_emp_setting = AD9081_SER_POST_EMP_0DB},
+                },
+                .invert_mask = 0x00,
+                .lane_mapping = { { 0, 1, 2, 3, 4, 5, 6, 7}, { 0, 1, 2, 3, 4, 5, 6, 7 } }, /* link0, link1 */
+            },
+            .des_settings = { /* txfe jrx */
+                .boost_mask = 0xff,
+                .invert_mask = 0x00,
+                .ctle_filter = { 2, 2, 2, 2, 2, 2, 2, 2 },
+                .lane_mapping =  { { 0, 1, 2, 3, 4, 5, 6, 7 }, { 0, 1, 2, 3, 4, 5, 6, 7} }, /* link0, link1 */
+            }
+        };
+
 	conv->reset_gpio =
 		devm_gpiod_get_optional(&spi->dev, "reset", GPIOD_OUT_HIGH);
 	if (IS_ERR(conv->reset_gpio))
@@ -3380,6 +3381,22 @@ static int ad9081_probe(struct spi_device *spi)
 		dev_err(&spi->dev, "Parsing devicetree failed (%d)\n", ret);
 		return -ENODEV;
 	}
+
+	memcpy(phy->ad9081.serdes_info.ser_settings.lane_mapping[0],
+		phy->jesd_rx_link[0].logiclane_mapping,
+		sizeof(phy->jesd_rx_link[0].logiclane_mapping));
+
+	memcpy(phy->ad9081.serdes_info.ser_settings.lane_mapping[1],
+		phy->jesd_rx_link[1].logiclane_mapping,
+		sizeof(phy->jesd_rx_link[1].logiclane_mapping));
+
+	memcpy(phy->ad9081.serdes_info.des_settings.lane_mapping[0],
+		phy->jesd_tx_link.logiclane_mapping,
+		sizeof(phy->jesd_tx_link.logiclane_mapping));
+
+	memcpy(phy->ad9081.serdes_info.des_settings.lane_mapping[1],
+		phy->jesd_tx_link.logiclane_mapping,
+		sizeof(phy->jesd_tx_link.logiclane_mapping));
 
 	ret = adi_ad9081_device_reset(&phy->ad9081, AD9081_HARD_RESET_AND_INIT);
 	if (ret < 0) {
