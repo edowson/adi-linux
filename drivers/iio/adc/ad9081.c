@@ -187,49 +187,25 @@ static int ad9081_nco_sync_master_slave(struct ad9081_phy *phy, bool master)
 {
 	int ret;
 
-	/* avoid the glitch before nco reset */
-	ret = adi_ad9081_hal_bf_set(&phy->ad9081,
-		REG_MAIN_AUTO_CLK_GATING_ADDR, 0x00000400, 7);
-	if (ret != 0)
-		return ret;
+	if (phy->ad9081.dev_info.dev_rev == 3) { /* r2 */
+		//adi_ad9081_hal_reg_set(&phy->ad9081, 0xd0, 0x1F);
+		ret = adi_ad9081_hal_bf_set(&phy->ad9081, REG_ACLK_CTRL_ADDR,
+					    BF_PD_TXDIGCLK_INFO,
+					    1); /* not paged */
+		AD9081_ERROR_RETURN(ret);
+		ret = adi_ad9081_hal_bf_set(&phy->ad9081, REG_ADC_DIVIDER_CTRL_ADDR,
+					    0x00000107, 0); /* not paged */
+		AD9081_ERROR_RETURN(ret);
+	}
 
-	ret = adi_ad9081_hal_bf_set(&phy->ad9081,
-		REG_NCOSYNC_MS_MODE_ADDR,
-		BF_NCO_SYNC_MS_EXTRA_LMFC_NUM_INFO,
-		phy->nco_sync_ms_extra_lmfc_num);
-	if (ret != 0)
-		return ret;
+	/* trigger_src  0: sysref, 1: lmfc rising edge, 2: lmfc falling edge */
 
-	ret = adi_ad9081_dac_nco_master_slave_gpio_set(&phy->ad9081, 0, master);
-	if (ret < 0)
-		return ret;
-	/* source  0: sysref, 1: lmfc rising edge, 2: lmfc falling edge */
-	ret = adi_ad9081_dac_nco_master_slave_trigger_source_set(
-		&phy->ad9081, 1); /* REG 0xCC */
-	if (ret < 0)
-		return ret;
+	return adi_ad9081_adc_nco_master_slave_sync(&phy->ad9081,
+					     master,
+					     1, /* trigger_src */
+					     0, /* gpio_index */
+					     phy->nco_sync_ms_extra_lmfc_num);
 
-	ret = adi_ad9081_dac_nco_master_slave_mode_set(&phy->ad9081,
-		master ? 1 : 2); /* REG 0xCC */
-
-	adi_ad9081_dac_nco_sync_reset_via_sysref_set(&phy->ad9081, 0);
-	adi_ad9081_dac_nco_sync_reset_via_sysref_set(&phy->ad9081, 1);
-
-	adi_ad9081_adc_ddc_coarse_sync_enable_set(&phy->ad9081,
-		AD9081_ADC_CDDC_ALL, 0);
-	adi_ad9081_adc_ddc_coarse_sync_enable_set(&phy->ad9081,
-		AD9081_ADC_CDDC_ALL, 1);
-
-	adi_ad9081_adc_ddc_fine_sync_enable_set(&phy->ad9081,
-		AD9081_ADC_FDDC_ALL, 0);
-	adi_ad9081_adc_ddc_fine_sync_enable_set(&phy->ad9081,
-		AD9081_ADC_FDDC_ALL, 1);
-
-	if (master)
-		return adi_ad9081_dac_nco_master_slave_trigger_set(
-			&phy->ad9081); /* REG 0xBC */
-
-	return ret;
 }
 
 unsigned long ad9081_calc_lanerate(struct ad9081_jesd_link *link,
@@ -3211,11 +3187,10 @@ static int ad9081_jesd204_setup_stage2(struct jesd204_dev *jdev,
 	dev_dbg(dev, "%s:%d reason %s\n", __func__, __LINE__, jesd204_state_op_reason_str(reason));
 
 	/* Master Slave NCO Sync */
-	if (!jesd204_dev_is_top(jdev)) {
-		ret = ad9081_nco_sync_master_slave(phy, false);
-		if (ret != 0)
-			return ret;
-	}
+
+	ret = ad9081_nco_sync_master_slave(phy, jesd204_dev_is_top(jdev));
+	if (ret != 0)
+		return ret;
 
 	return JESD204_STATE_CHANGE_DONE;
 }
@@ -3233,11 +3208,14 @@ static int ad9081_jesd204_setup_stage3(struct jesd204_dev *jdev,
 
 	dev_dbg(dev, "%s:%d reason %s\n", __func__, __LINE__, jesd204_state_op_reason_str(reason));
 
-	/* Master Slave NCO Sync */
-	if (jesd204_dev_is_top(phy->jdev)) {
-		ret = ad9081_nco_sync_master_slave(phy, true);
-		if (ret != 0)
-			return ret;
+	if (phy->ad9081.dev_info.dev_rev == 3) { /* r2 */
+		ret = adi_ad9081_hal_bf_set(&phy->ad9081, REG_ADC_DIVIDER_CTRL_ADDR,
+					    0x00000107, 1); /* not paged */
+		AD9081_ERROR_RETURN(ret);
+		ret = adi_ad9081_hal_bf_set(&phy->ad9081, REG_ACLK_CTRL_ADDR,
+					    BF_PD_TXDIGCLK_INFO,
+					    0); /* not paged */
+		AD9081_ERROR_RETURN(ret);
 	}
 
 	return JESD204_STATE_CHANGE_DONE;
