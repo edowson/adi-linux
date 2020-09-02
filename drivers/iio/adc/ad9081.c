@@ -168,8 +168,8 @@ struct ad9081_phy {
 	u64 adc_frequency_hz;
 	s64 rx_fddc_shift[MAX_NUM_CHANNELIZER];
 	s64 rx_cddc_shift[MAX_NUM_MAIN_DATAPATHS];
-	s32 rx_fddc_phase[MAX_NUM_MAIN_DATAPATHS];
-	s32 rx_cddc_phase[MAX_NUM_CHANNELIZER];
+	s32 rx_fddc_phase[MAX_NUM_CHANNELIZER];
+	s32 rx_cddc_phase[MAX_NUM_MAIN_DATAPATHS];
 
 	u32 rx_nyquist_zone;
 	u8 rx_cddc_c2r[MAX_NUM_MAIN_DATAPATHS];
