@@ -81,4 +81,22 @@ enum adi_axi_fpga_dev_pack {
 	ADI_AXI_FPGA_DEV_FA,
 };
 
+/* JESD TPL COMMON */
+
+#define ADI_REG_TPL_CNTRL		0x0200
+#define ADI_REG_TPL_STATUS		0x0204
+#define ADI_REG_TPL_DESCRIPTOR_1	0x0240
+#define ADI_REG_TPL_DESCRIPTOR_2	0x0244
+
+#define ADI_TO_JESD_M(x)		(((x) >> 0) & 0xFF)
+#define ADI_TO_JESD_L(x)		(((x) >> 8) & 0xFF)
+#define ADI_TO_JESD_S(x)		(((x) >> 16) & 0xFF)
+#define ADI_TO_JESD_F(x)		(((x) >> 24) & 0xFF)
+
+#define ADI_TO_JESD_N(x)		(((x) >> 0) & 0xFF)
+#define ADI_TO_JESD_NP(x)		(((x) >> 8) & 0xFF)
+
+#define ADI_TO_PROFILE_NUM(x)		(((x) >> 0) & 0xF)
+#define ADI_PROFILE_SEL(x)		((x) & 0xF)
+
 #endif /* ADI_AXI_COMMON_H_ */
