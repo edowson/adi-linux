@@ -3253,6 +3253,7 @@ static const struct jesd204_dev_data jesd204_ad9081_init = {
 	},
 
 	.num_links = 2,
+	.num_retries = 3,
 	.sizeof_priv = sizeof(struct ad9081_jesd204_priv),
 };
 
