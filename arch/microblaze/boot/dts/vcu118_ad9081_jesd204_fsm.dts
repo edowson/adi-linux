@@ -20,8 +20,14 @@
 	jesd204-link-ids = < FRAMER_LINK0_RX DEFRAMER_LINK0_TX>;
 
 	jesd204-inputs =
-		<&axi_ad9081_rx_jesd 0 FRAMER_LINK0_RX>,
+		<&axi_ad9081_core_rx 0 FRAMER_LINK0_RX>,
 		<&axi_ad9081_core_tx 0 DEFRAMER_LINK0_TX>;
+};
+
+&axi_ad9081_core_rx {
+	jesd204-device;
+	#jesd204-cells = <2>;
+	jesd204-inputs = <&axi_ad9081_rx_jesd 0 FRAMER_LINK0_RX>;
 };
 
 &axi_ad9081_core_tx {
