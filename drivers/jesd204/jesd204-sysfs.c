@@ -65,6 +65,8 @@ static const struct attribute jesd204_con_attrs[] = {
 };
 
 enum {
+	JESD204_LNK_ATTR_UINT_error,
+	JESD204_LNK_ATTR_UINT_fsm_paused,
 	JESD204_LNK_ATTR_UINT_link_id,
 	JESD204_LNK_ATTR_UINT_sample_rate,
 	JESD204_LNK_ATTR_UINT_is_transmit,
@@ -91,6 +93,8 @@ enum {
 };
 
 static const struct jesd204_attr jesd204_lnk_attrs[] = {
+	JESD204_LNK_ATTR_BOOL(error),
+	JESD204_LNK_ATTR_BOOL(fsm_paused),
 	JESD204_LNK_ATTR_UINT(link_id),
 	JESD204_LNK_ATTR_UINT(sample_rate),
 	JESD204_LNK_ATTR_BOOL(is_transmit),

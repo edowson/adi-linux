@@ -68,6 +68,7 @@ struct jesd204_sysref {
  * @link_id			JESD204 link ID provided via DT configuration
  * @error			error code for this JESD204 link
  * @is_transmit			true if this link is transmit (digital to analog)
+ * @fsm_paused			true if FSM has paused (a deferred call happened)
  * @sample_rate			sample rate for the link
  * @num_lanes			number of JESD204 lanes (L)
  * @num_converters		number of converters per link (M)
@@ -101,6 +102,7 @@ struct jesd204_sysref {
 struct jesd204_link {
 	u32 link_id;
 	int error;
+	bool fsm_paused;
 
 	u64 sample_rate;
 
@@ -254,6 +256,8 @@ struct jesd204_dev *devm_jesd204_dev_register(struct device *dev,
 int jesd204_fsm_start(struct jesd204_dev *jdev, unsigned int link_idx);
 void jesd204_fsm_stop(struct jesd204_dev *jdev, unsigned int link_idx);
 
+int jesd204_fsm_resume(struct jesd204_dev *jdev, unsigned int link_idx);
+
 void jesd204_fsm_clear_errors(struct jesd204_dev *jdev, unsigned int link_idx);
 
 struct device *jesd204_dev_to_device(struct jesd204_dev *jdev);
@@ -289,6 +293,12 @@ static inline int jesd204_fsm_start(struct jesd204_dev *jdev,
 
 static inline void jesd204_fsm_stop(struct jesd204_dev *jdev,
 				    unsigned int link_idx) {}
+
+static inline int jesd204_fsm_resume(struct jesd204_dev *jdev,
+				     unsigned int link_idx)
+{
+	return 0;
+}
 
 static inline void jesd204_fsm_clear_errors(struct jesd204_dev *jdev,
 					    unsigned int link_idx) {}
